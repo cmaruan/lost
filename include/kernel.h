@@ -12,4 +12,8 @@
 #error "This tutorial needs to be compiled with a ix86-elf compiler"
 #endif
 
+#ifndef __lost_libk
+#define __lost_libk 1
+#endif
+
 #endif  // KERNEL_H

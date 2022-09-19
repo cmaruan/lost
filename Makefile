@@ -5,20 +5,23 @@ GRUBFILE=/opt/grub/usr/local/bin/grub-file
 GRUBMKRESCUE=/opt/grub/usr/local/bin/grub-mkrescue
 PWD=$(shell pwd)
 INCLUDE=include/
-CFLAGS=-std=gnu99 -ffreestanding -O2 -Wall -Wextra -I$(INCLUDE)
+CFLAGS=-std=gnu99 -ffreestanding -O0 -Wall -Wextra -I$(INCLUDE)
+
+OBJS=$(patsubst %.c,%.o,$(wildcard src/*.c))
 
 boot.o: src/boot.s
 	$(AS) src/boot.s -o boot.o 
 
-kio.o: src/kio.c
-	$(CC) -c src/kio.c -o kio.o $(CFLAGS)
+%.o: src/%.c
+	$(CC) -c $< -o $@ $(CFLAGS)
 
-kernel.o: src/kernel.c 
-	$(CC) -c src/kernel.c -o kernel.o $(CFLAGS)
+lost.bin: boot.o $(OBJS)
+	$(CC) -T linker.ld -o lost.bin -ffreestanding -O2 -nostdlib boot.o $(OBJS) -lgcc
 
-lost.bin: boot.o kernel.o linker.ld kio.o
-	$(CC) -T linker.ld -o lost.bin -ffreestanding -O2 -nostdlib boot.o kernel.o kio.o -lgcc
-
+clean:
+	rm -rf *.o 
+	rm -rf src/*.o
+	rm -rf lost.*
 
 
 run: lost.bin

@@ -1,4 +1,5 @@
-#include "kio.h"
+#include "vga.h"
+
 struct vga_terminal {
     size_t cursor_row;
     size_t cursor_column;
@@ -25,11 +26,29 @@ static inline void s_vga_term_put_entry_at(char c, uint8_t color, size_t x,
     size_t index = y * VGA_WIDTH + x;
     s_terminal.buffer[index] = s_vga_entry(c, color);
 }
+static inline void s_vga_term_new_line() {
+    s_terminal.cursor_column = 0;
+    s_terminal.cursor_row++;
+}
+static inline void s_vga_term_scroll() {
+    if (s_terminal.cursor_row < VGA_HEIGHT) {
+        return;
+    }
+    for (size_t i = VGA_WIDTH; i < VGA_WIDTH * VGA_HEIGHT; i++) {
+        s_terminal.buffer[i - VGA_WIDTH] = s_terminal.buffer[i];
+    }
+    for (size_t i = (VGA_WIDTH * (VGA_HEIGHT - 1)); i < VGA_WIDTH * VGA_HEIGHT;
+         i++) {
+        s_terminal.buffer[i] = s_vga_entry(' ', s_terminal.color);
+    }
+    s_terminal.cursor_column = 0;
+    s_terminal.cursor_row = VGA_HEIGHT - 1;
+}
 static inline void s_vga_term_advance_cursor() {
     if (++s_terminal.cursor_column == VGA_WIDTH) {
         s_terminal.cursor_column = 0;
         if (++s_terminal.cursor_row == VGA_HEIGHT) {
-            s_terminal.cursor_row = 0;
+            s_vga_term_scroll();
         }
     }
 }
@@ -48,13 +67,13 @@ void vga_term_init() {
 }
 void vga_term_putchar(char c) {
     if (c == '\n') {
-        s_terminal.cursor_column = 0;
-        s_terminal.cursor_row++;
+        s_vga_term_new_line();
     } else {
         s_vga_term_put_entry_at(c, s_terminal.color, s_terminal.cursor_column,
                                 s_terminal.cursor_row);
         s_vga_term_advance_cursor();
     }
+    s_vga_term_scroll();
 }
 void vga_term_write(const char *string, size_t size) {
     for (size_t i = 0; i < size; i++) {
